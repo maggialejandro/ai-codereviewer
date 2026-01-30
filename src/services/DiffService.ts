@@ -16,9 +16,9 @@ export class DiffService {
   }
 
   async getRelevantFiles(
-    prDetails: PRDetails, 
+    prDetails: PRDetails,
     lastReviewedCommit?: string | null
-  ): Promise<Array<{ path: string; diff: string }>> {
+  ): Promise<Array<{ path: string; diff: string; isNew: boolean; isDeleted: boolean }>> {
     const baseUrl = `https://api.github.com/repos/${prDetails.owner}/${prDetails.repo}`;
     const diffUrl = lastReviewedCommit ? 
       `${baseUrl}/compare/${lastReviewedCommit}...${prDetails.head}` :
@@ -47,13 +47,13 @@ export class DiffService {
     return this.filterRelevantFiles(files);
   }
 
-  private filterRelevantFiles(files: File[]): Array<{ path: string; diff: string }> {
+  private filterRelevantFiles(files: File[]): Array<{ path: string; diff: string; isNew: boolean; isDeleted: boolean }> {
     core.debug(`Excluding patterns: ${this.excludePatterns.join(', ')}`);
 
     return files
       .filter(file => {
         const filePath = file.to ?? '';
-        const shouldExclude = this.excludePatterns.some(pattern => 
+        const shouldExclude = this.excludePatterns.some(pattern =>
           minimatch(filePath, pattern, { matchBase: true, dot: true })
         );
 
@@ -69,6 +69,8 @@ export class DiffService {
       .map(file => ({
         path: file.to ?? '',
         diff: this.formatDiff(file),
+        isNew: file.new === true,
+        isDeleted: file.deleted === true
       }));
   }
 

@@ -53,10 +53,19 @@ export class ReviewService {
     const filesWithContent = await Promise.all(
       modifiedFiles.map(async (file) => {
         const fullContent = await this.githubService.getFileContent(file.path, prDetails.head);
+
+        // Only fetch original content for modified files (not new files)
+        // New files don't exist on the base branch, so fetching would cause 404 errors
+        const originalContent = file.isNew
+          ? undefined
+          : await this.githubService.getFileContent(file.path, prDetails.base);
+
+        core.debug(`File ${file.path}: isNew=${file.isNew}, isDeleted=${file.isDeleted}`);
+
         return {
           path: file.path,
           content: fullContent,
-          originalContent: await this.githubService.getFileContent(file.path, prDetails.base),
+          originalContent,
           diff: file.diff,
         };
       })

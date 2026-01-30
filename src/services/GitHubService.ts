@@ -54,7 +54,17 @@ export class GitHubService {
       }
       throw new Error('Not a file');
     } catch (error) {
-      core.warning(`Failed to get content for ${path}: ${error}`);
+      // Check if it's a 404 Not Found error
+      const is404 = error && typeof error === 'object' && 'status' in error && error.status === 404;
+
+      if (is404) {
+        // 404 errors are expected for new files when fetching from base branch
+        core.debug(`File not found: ${path}${ref ? ` (ref: ${ref})` : ''} - This is expected for new files`);
+      } else {
+        // Other errors are unexpected and should be logged as warnings
+        core.warning(`Failed to get content for ${path}: ${error}`);
+      }
+
       return '';
     }
   }
